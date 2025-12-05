@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste - Dicas em Tempo Real</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      padding: 30px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .status {
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      font-weight: 500;
+    }
+    .status.connected { background: #d4edda; color: #155724; }
+    .status.disconnected { background: #f8d7da; color: #721c24; }
+    
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      background: #667eea;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    button:active { transform: translateY(0); }
+    
+    .tips-container {
+      margin-top: 30px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .tip {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 15px;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .tip.daily { border-left-color: #ffc107; background: #fff9e6; }
+    .tip.broadcast { border-left-color: #28a745; background: #e8f5e9; }
+    
+    .tip-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .tip-icon {
+      font-size: 32px;
+    }
+    .tip-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #333;
+      flex: 1;
+    }
+    .tip-badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .tip-badge.daily { background: #ffc107; color: #000; }
+    .tip-badge.random { background: #667eea; color: white; }
+    .tip-badge.category { background: #17a2b8; color: white; }
+    .tip-badge.broadcast { background: #28a745; color: white; }
+    
+    .tip-content {
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .tip-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #888;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #ddd;
+    }
+    .category-tag {
+      background: #e9ecef;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌱 Dicas de Sustentabilidade em Tempo Real</h1>
+    <p style="color: #666; margin-bottom: 20px;">Teste do sistema Socket.IO</p>
+    
+    <div id="status" class="status disconnected">
+      🔴 Desconectado
+    </div>
+    
+    <div class="buttons">
+      <button onclick="requestRandomTip()">🎲 Pedir Dica Aleatória</button>
+      <button onclick="requestCategoryTip('energia')">⚡ Dica de Energia</button>
+      <button onclick="requestCategoryTip('agua')">💧 Dica de Água</button>
+      <button onclick="requestCategoryTip('reciclagem')">♻️ Dica de Reciclagem</button>
+      <button onclick="requestCategoryTip('transporte')">🚴 Dica de Transporte</button>
+      <button onclick="clearTips()">🗑️ Limpar</button>
+    </div>
+    
+    <div id="tips" class="tips-container"></div>
+  </div>
+
+  <script>
+    const socket = io('http://localhost:5001', {
+      transports: ['websocket', 'polling']
+    });
+
+    const statusEl = document.getElementById('status');
+    const tipsEl = document.getElementById('tips');
+
+    socket.on('connect', () => {
+      statusEl.textContent = '🟢 Conectado - Socket ID: ' + socket.id;
+      statusEl.className = 'status connected';
+      console.log('Conectado!', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+      statusEl.textContent = '🔴 Desconectado';
+      statusEl.className = 'status disconnected';
+    });
+
+    socket.on('tip:daily', (data) => {
+      addTip(data, 'daily', 'Dica do Dia');
+    });
+
+    socket.on('tip:new', (data) => {
+      addTip(data, data.type, data.type === 'random' ? 'Aleatória' : 'Por Categoria');
+    });
+
+    socket.on('tip:broadcast', (data) => {
+      addTip(data, 'broadcast', 'Broadcast Periódico');
+    });
+
+    function addTip(data, type, label) {
+      const tip = data.tip;
+      const time = new Date(data.timestamp).toLocaleTimeString('pt-PT');
+      
+      const tipEl = document.createElement('div');
+      tipEl.className = 'tip ' + type;
+      tipEl.innerHTML = `
+        <div class="tip-header">
+          <div class="tip-icon">${tip.icon}</div>
+          <div class="tip-title">${tip.title}</div>
+          <span class="tip-badge ${type}">${label}</span>
+        </div>
+        <div class="tip-content">${tip.content}</div>
+        <div class="tip-meta">
+          <span class="category-tag">${tip.category}</span>
+          <span>${time}</span>
+        </div>
+      `;
+      
+      tipsEl.insertBefore(tipEl, tipsEl.firstChild);
+      console.log(`[${type.toUpperCase()}]`, tip);
+    }
+
+    function requestRandomTip() {
+      socket.emit('tip:request');
+      console.log('Pedindo dica aleatória...');
+    }
+
+    function requestCategoryTip(category) {
+      socket.emit('tip:category', { category });
+      console.log('Pedindo dica de:', category);
+    }
+
+    function clearTips() {
+      tipsEl.innerHTML = '';
+    }
+  </script>
+</body>
+</html>
