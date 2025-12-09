@@ -1,3 +1,4 @@
+.idea
 # Logs
 logs
 *.log
@@ -138,3 +139,12 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .DS_Store
+
+# Frontend build & deps
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.vscode/
+frontend/.DS_Store
+
