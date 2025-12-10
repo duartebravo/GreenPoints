@@ -77,17 +77,17 @@ export default function LoginMockup() {
     }
 
     return (
-        <div className="max-w-md mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+        <div className="w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
             {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 p-8 text-white text-center">
-                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 p-6 sm:p-8 text-white text-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
                     <Leaf className="w-12 h-12 text-emerald-600" />
                 </div>
                 <h1 className="mb-2 text-2xl font-semibold">GreenPoints+</h1>
                 <p className="text-sm opacity-90">Sustentabilidade na ESTG - IPVC</p>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6 md:p-8">
                 <Tabs defaultValue="login" className="w-full">
                     <TabsList className="grid w-full grid-cols-2 mb-6">
                         <TabsTrigger value="login">Entrar</TabsTrigger>
@@ -96,7 +96,7 @@ export default function LoginMockup() {
 
                     {/* LOGIN */}
                     <TabsContent value="login" className="space-y-4 mt-0">
-                        <Card className="border-emerald-200">
+                        <Card className="border-emerald-200 p-2 sm:p-3 md:p-4">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-emerald-700 text-center">Bem-vindo de volta!</CardTitle>
                             </CardHeader>
@@ -110,6 +110,7 @@ export default function LoginMockup() {
                                         placeholder="exemplo@ipvc.pt"
                                         value={loginEmail}
                                         onChange={(e) => setLoginEmail(e.target.value)}
+                                        className="h-10 sm:h-12 text-sm sm:text-base"
                                     />
                                     <p className="text-xs text-slate-500">Usa o teu email institucional da ESTG/IPVC.</p>
                                 </div>
@@ -148,7 +149,7 @@ export default function LoginMockup() {
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200">
+                        <Card className="bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200 p-2 sm:p-3 md:p-4">
                             <CardContent className="p-4">
                                 <div className="flex items-start gap-3">
                                     <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -167,7 +168,7 @@ export default function LoginMockup() {
 
                     {/* REGISTO */}
                     <TabsContent value="register" className="space-y-4 mt-0">
-                        <Card className="border-emerald-200">
+                        <Card className="border-emerald-200 p-2 sm:p-3 md:p-4">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-emerald-700 text-center">Cria a tua conta</CardTitle>
                             </CardHeader>
@@ -176,7 +177,13 @@ export default function LoginMockup() {
                                     <Label className="flex items-center gap-2 text-slate-700">
                                         <User className="w-4 h-4" /> Nome completo
                                     </Label>
-                                    <Input type="text" placeholder="Ex: João Silva" value={name} onChange={(e) => setName(e.target.value)} />
+                                    <Input
+                                        type="text"
+                                        placeholder="Ex: João Silva"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="h-10 sm:h-12 text-sm sm:text-base"
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
@@ -188,6 +195,7 @@ export default function LoginMockup() {
                                         placeholder="exemplo@ipvc.pt"
                                         value={regEmail}
                                         onChange={(e) => setRegEmail(e.target.value)}
+                                        className="h-10 sm:h-12 text-sm sm:text-base"
                                     />
                                 </div>
 
@@ -223,6 +231,7 @@ export default function LoginMockup() {
                                         placeholder="••••••••"
                                         value={regConfirm}
                                         onChange={(e) => setRegConfirm(e.target.value)}
+                                        className="h-10 sm:h-12 text-sm sm:text-base"
                                     />
                                 </div>
 
@@ -238,7 +247,7 @@ export default function LoginMockup() {
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-gradient-to-br from-blue-50 to-emerald-50 border-blue-200">
+                        <Card className="bg-gradient-to-br from-blue-50 to-emerald-50 border-blue-200 p-2 sm:p-3 md:p-4">
                             <CardContent className="p-4">
                                 <h4 className="text-slate-900 mb-3 text-center">Ao registares-te terás acesso a:</h4>
                                 <div className="space-y-2 text-sm text-slate-700">
