@@ -1,13 +1,16 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Leaf, Mail, Lock, User, GraduationCap, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginMockup() {
+    const navigate = useNavigate();
+    const { login, register } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
 
     // login
@@ -40,12 +43,8 @@ export default function LoginMockup() {
 
         try {
             setLoginLoading(true);
-            const data = await api<{ token: string }>("/auth/login", {
-                method: "POST",
-                body: JSON.stringify({ email: loginEmail, password: loginPassword }),
-            });
-            localStorage.setItem("token", data.token);
-            window.location.href = "/dashboard";
+            await login(loginEmail, loginPassword);
+            navigate("/dashboard");
         } catch (e: any) {
             setLoginError(e.message || "Erro no login");
         } finally {
@@ -63,12 +62,13 @@ export default function LoginMockup() {
 
         try {
             setRegLoading(true);
-            await api("/auth/register", {
-                method: "POST",
-                body: JSON.stringify({ name, email: regEmail, password: regPassword }),
-            });
-            // simples feedback; poderias usar toast do shadcn mais tarde
+            await register(name, regEmail, regPassword);
             window.alert("Conta criada com sucesso! Já podes iniciar sessão.");
+            // Limpar form e voltar para tab de login
+            setName("");
+            setRegEmail("");
+            setRegPassword("");
+            setRegConfirm("");
         } catch (e: any) {
             setRegError(e.message || "Erro no registo");
         } finally {
