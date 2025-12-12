@@ -1,39 +1,95 @@
-import { Trophy, Medal, Crown, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Trophy, Crown, Medal, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { BottomNav } from "@/components/BottomNav";
+import { rankingApi } from "@/lib/apiServices";
 
-// Dados mockados - futuramente virão da API
-const topUsers = [
-    { name: "Ana Silva", points: 5420, position: 1, trend: "+12%", type: "Aluno", course: "Eng. Informática" },
-    { name: "João Costa", points: 4850, position: 2, trend: "+8%", type: "Professor", course: "Gestão" },
-    { name: "Maria Santos", points: 4320, position: 3, trend: "+15%", type: "Aluno", course: "Design" },
-];
-
-const otherUsers = [
-    { name: "Pedro Oliveira", points: 3890, position: 4, trend: "+5%", type: "Funcionário", course: "Eng. Civil" },
-    { name: "Sofia Ferreira", points: 3540, position: 5, trend: "+10%", type: "Aluno", course: "Contabilidade" },
-    { name: "Lucas Pereira", points: 3210, position: 6, trend: "+3%", type: "Aluno", course: "Marketing" },
-    { name: "Beatriz Alves", points: 2980, position: 7, trend: "+7%", type: "Professor", course: "Turismo" },
-];
-
-const topCourses = [
-    { name: "Engenharia Informática", points: 45230, students: 156 },
-    { name: "Design", points: 38450, students: 98 },
-    { name: "Gestão", points: 34120, students: 142 },
-    { name: "Contabilidade", points: 28340, students: 87 },
-    { name: "Marketing", points: 24890, students: 103 },
-];
+interface RankedUser {
+    userId: {
+        _id: string;
+        name: string;
+        course?: string;
+    };
+    totalPoints: number;
+    rank: number;
+}
 
 export default function Ranking() {
     const { user } = useAuth();
+    const [rankings, setRankings] = useState<RankedUser[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Simular posição do utilizador atual no ranking (futuramente virá da API)
-    const userPosition = 8;
-    const userTrend = "+15%";
+    useEffect(() => {
+        loadRanking();
+    }, []);
+
+    const loadRanking = async () => {
+        try {
+            setLoading(true);
+            console.log("🔍 [Ranking] Fetching ranking data...");
+
+            const data = await rankingApi.getGlobal() as Promise<{
+                rankings: any[];
+                userRank: any;
+                total: number
+            }>;
+            const resolvedData = await data;
+
+            console.log("📊 [Ranking] Backend response:", resolvedData);
+            console.log("📊 [Ranking] Rankings array:", resolvedData?.rankings);
+            console.log("📊 [Ranking] Rankings length:", resolvedData?.rankings?.length);
+
+            // Map backend response to frontend format
+            if (resolvedData && resolvedData.rankings) {
+                const mappedRankings = resolvedData.rankings.map((item: any) => {
+                    console.log("👤 [Ranking] Mapping user:", item);
+                    return {
+                        userId: {
+                            _id: item.userId,
+                            name: item.name,
+                            course: "ESTG",
+                        },
+                        totalPoints: item.points,
+                        rank: item.rank,
+                    };
+                });
+
+                console.log("✅ [Ranking] Mapped rankings:", mappedRankings);
+                setRankings(mappedRankings);
+            } else {
+                console.warn("⚠️ [Ranking] No rankings data in response");
+            }
+        } catch (error) {
+            console.error("❌ [Ranking] Error loading ranking:", error);
+        } finally {
+            setLoading(false);
+            console.log("🏁 [Ranking] Loading complete");
+        }
+    };
+
+    const getUserInitials = (name: string) => {
+        return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase();
+    };
+
+    const currentUserRank = rankings.findIndex((r) => r.userId._id === user?.id);
+    const topUsers = rankings.slice(0, 3);
+    const otherUsers = rankings.slice(3);
+
+    if (loading) {
+        return (
+            <div className="min-h-dvh bg-gradient-to-b from-slate-50 to-white pb-20 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-dvh bg-gradient-to-b from-slate-50 to-white pb-20">
@@ -46,7 +102,7 @@ export default function Ranking() {
                         </div>
                         <div>
                             <h2 className="text-xl sm:text-2xl font-semibold">Rankings</h2>
-                            <p className="text-white/90 text-sm">Novembro 2025</p>
+                            <p className="text-white/90 text-sm sm:text-base">Top utilizadores da ESTG</p>
                         </div>
                     </div>
                 </div>
@@ -58,174 +114,156 @@ export default function Ranking() {
                             <TabsTrigger value="cursos">Cursos</TabsTrigger>
                         </TabsList>
 
-                        {/* TAB INDIVIDUAL */}
-                        <TabsContent value="individual" className="space-y-4 sm:space-y-6 mt-0">
-                            {/* Podium - Top 3 */}
-                            <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-200 shadow-md">
-                                <CardContent className="p-4 sm:p-6">
-                                    <div className="flex items-end justify-center gap-2 sm:gap-4">
-                                        {/* 2nd Place */}
-                                        <div className="flex flex-col items-center flex-1">
-                                            <Medal className="w-7 h-7 sm:w-8 sm:h-8 text-slate-400 mb-2" />
-                                            <Avatar className="w-14 h-14 sm:w-16 sm:h-16 border-4 border-slate-300 mb-2">
-                                                <AvatarFallback className="bg-slate-200 text-slate-700 text-sm sm:text-base">
-                                                    {topUsers[1].name.split(" ").map((n) => n[0]).join("")}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <p className="text-xs sm:text-sm font-medium text-slate-900 text-center">
-                                                {topUsers[1].name.split(" ")[0]} {topUsers[1].name.split(" ")[1]?.[0]}.
-                                            </p>
-                                            <Badge variant="outline" className="text-xs mb-1 mt-1">
-                                                {topUsers[1].type}
-                                            </Badge>
-                                            <p className="text-xs sm:text-sm font-semibold text-slate-700">
-                                                {topUsers[1].points.toLocaleString()}
-                                            </p>
-                                        </div>
-
-                                        {/* 1st Place */}
-                                        <div className="flex flex-col items-center flex-1">
-                                            <Crown className="w-9 h-9 sm:w-10 sm:h-10 text-amber-500 mb-2 animate-pulse" />
-                                            <Avatar className="w-18 h-18 sm:w-20 sm:h-20 border-4 border-amber-500 mb-2 shadow-lg">
-                                                <AvatarFallback className="bg-amber-100 text-amber-700 text-base sm:text-lg font-bold">
-                                                    {topUsers[0].name.split(" ").map((n) => n[0]).join("")}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <p className="text-sm sm:text-base font-semibold text-slate-900 text-center">
-                                                {topUsers[0].name.split(" ")[0]} {topUsers[0].name.split(" ")[1]?.[0]}.
-                                            </p>
-                                            <Badge className="bg-amber-500 hover:bg-amber-600 text-white text-xs mb-1 mt-1">
-                                                {topUsers[0].type}
-                                            </Badge>
-                                            <p className="text-sm sm:text-base font-bold text-emerald-600">
-                                                {topUsers[0].points.toLocaleString()}
-                                            </p>
-                                        </div>
-
-                                        {/* 3rd Place */}
-                                        <div className="flex flex-col items-center flex-1">
-                                            <Medal className="w-7 h-7 sm:w-8 sm:h-8 text-amber-600 mb-2" />
-                                            <Avatar className="w-14 h-14 sm:w-16 sm:h-16 border-4 border-amber-400 mb-2">
-                                                <AvatarFallback className="bg-amber-100 text-amber-700 text-sm sm:text-base">
-                                                    {topUsers[2].name.split(" ").map((n) => n[0]).join("")}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <p className="text-xs sm:text-sm font-medium text-slate-900 text-center">
-                                                {topUsers[2].name.split(" ")[0]} {topUsers[2].name.split(" ")[1]?.[0]}.
-                                            </p>
-                                            <Badge variant="outline" className="text-xs mb-1 mt-1">
-                                                {topUsers[2].type}
-                                            </Badge>
-                                            <p className="text-xs sm:text-sm font-semibold text-slate-700">
-                                                {topUsers[2].points.toLocaleString()}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Rankings List - Posições 4+ */}
-                            <div className="space-y-2 sm:space-y-3">
-                                <h3 className="text-sm font-semibold text-slate-600 px-1">Outras Posições</h3>
-
-                                {otherUsers.map((rankUser) => (
-                                    <Card key={rankUser.position} className="border-slate-200 hover:shadow-md transition-shadow">
-                                        <CardContent className="p-3 sm:p-4 flex items-center gap-3">
-                                            <span className="w-8 text-center font-semibold text-slate-500 text-sm sm:text-base">
-                                                #{rankUser.position}
-                                            </span>
-                                            <Avatar className="w-10 h-10 sm:w-12 sm:h-12">
-                                                <AvatarFallback className="bg-slate-200 text-slate-700">
-                                                    {rankUser.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm sm:text-base font-medium text-slate-900 truncate">
-                                                    {rankUser.name}
-                                                </p>
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {rankUser.type}
-                                                    </Badge>
-                                                    <p className="text-xs text-slate-500 truncate">{rankUser.course}</p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right flex-shrink-0">
-                                                <p className="text-sm sm:text-base font-semibold text-emerald-700">
-                                                    {rankUser.points.toLocaleString()}
-                                                </p>
-                                                <p className="text-xs text-green-600 flex items-center gap-0.5">
-                                                    <TrendingUp className="w-3 h-3" />
-                                                    {rankUser.trend}
-                                                </p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-
-                                {/* Posição do Utilizador Atual (destacada) */}
-                                <Card className="border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg">
-                                    <CardContent className="p-3 sm:p-4 flex items-center gap-3">
-                                        <span className="w-8 text-center font-bold text-blue-700 text-sm sm:text-base">
-                                            #{userPosition}
-                                        </span>
-                                        <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-blue-500">
-                                            <AvatarFallback className="bg-blue-200 text-blue-700 font-semibold">
-                                                {user?.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm sm:text-base font-semibold text-blue-900 truncate">
-                                                Tu ({user?.name.split(" ")[0]})
-                                            </p>
-                                            <div className="flex items-center gap-2">
-                                                <Badge className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
-                                                    Aluno
-                                                </Badge>
-                                                <p className="text-xs text-blue-600">Eng. Informática</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right flex-shrink-0">
-                                            <p className="text-sm sm:text-base font-bold text-blue-700">
-                                                {user?.points.toLocaleString() ?? 0}
-                                            </p>
-                                            <p className="text-xs text-green-600 flex items-center gap-0.5 justify-end">
-                                                <TrendingUp className="w-3 h-3" />
-                                                {userTrend}
-                                            </p>
-                                        </div>
+                        {/* Individual Ranking */}
+                        <TabsContent value="individual" className="space-y-6 mt-0">
+                            {rankings.length === 0 ? (
+                                <Card className="border-slate-200">
+                                    <CardContent className="p-12 text-center">
+                                        <Trophy className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                                        <p className="text-slate-500 text-lg font-semibold mb-2">Sem rankings disponíveis</p>
+                                        <p className="text-slate-400 text-sm">
+                                            Regista algumas ações para aparecer no ranking!
+                                        </p>
                                     </CardContent>
                                 </Card>
-                            </div>
+                            ) : (
+                                <>
+                                    {/* Podium - Top 3 */}
+                                    {topUsers.length >= 3 && (
+                                        <div className="flex items-end justify-center gap-3 sm:gap-4 mb-6">
+                                            {/* 2nd Place */}
+                                            <div className="flex flex-col items-center flex-1 max-w-[110px]">
+                                                <Medal className="w-6 h-6 sm:w-7 sm:h-7 text-slate-400 mb-2" />
+                                                <Avatar className="w-14 h-14 sm:w-16 sm:h-16 border-4 border-slate-300 shadow-lg mb-2">
+                                                    <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-500 text-white font-semibold">
+                                                        {getUserInitials(topUsers[1].userId.name)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <p className="text-sm sm:text-base font-semibold text-slate-900 text-center truncate w-full">
+                                                    {topUsers[1].userId.name.split(" ")[0]}
+                                                </p>
+                                                <p className="text-xs sm:text-sm text-slate-600 font-semibold">
+                                                    {topUsers[1].totalPoints.toLocaleString()} pts
+                                                </p>
+                                            </div>
+
+                                            {/* 1st Place */}
+                                            <div className="flex flex-col items-center flex-1 max-w-[130px] relative">
+                                                <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-amber-500 mb-2" />
+                                                <Avatar className="w-18 h-18 sm:w-20 sm:h-20 border-4 border-amber-400 shadow-xl mb-2">
+                                                    <AvatarFallback className="bg-gradient-to-br from-amber-400 to-amber-600 text-white font-bold text-lg">
+                                                        {getUserInitials(topUsers[0].userId.name)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <p className="text-base sm:text-lg font-bold text-slate-900 text-center truncate w-full">
+                                                    {topUsers[0].userId.name.split(" ")[0]}
+                                                </p>
+                                                <p className="text-sm sm:text-base text-amber-700 font-bold">
+                                                    {topUsers[0].totalPoints.toLocaleString()} pts
+                                                </p>
+                                            </div>
+
+                                            {/* 3rd Place */}
+                                            <div className="flex flex-col items-center flex-1 max-w-[110px]">
+                                                <Medal className="w-6 h-6 sm:w-7 sm:h-7 text-amber-700 mb-2" />
+                                                <Avatar className="w-14 h-14 sm:w-16 sm:h-16 border-4 border-amber-600 shadow-lg mb-2">
+                                                    <AvatarFallback className="bg-gradient-to-br from-amber-600 to-amber-800 text-white font-semibold">
+                                                        {getUserInitials(topUsers[2].userId.name)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <p className="text-sm sm:text-base font-semibold text-slate-900 text-center truncate w-full">
+                                                    {topUsers[2].userId.name.split(" ")[0]}
+                                                </p>
+                                                <p className="text-xs sm:text-sm text-slate-600 font-semibold">
+                                                    {topUsers[2].totalPoints.toLocaleString()} pts
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Current User Highlight */}
+                                    {currentUserRank !== -1 && currentUserRank >= 3 && (
+                                        <Card className="border-emerald-300 bg-gradient-to-r from-emerald-50 to-green-50 shadow-md">
+                                            <CardContent className="p-4">
+                                                <p className="text-xs text-emerald-700 font-semibold mb-2">A Tua Posição</p>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-lg font-bold text-emerald-700">
+                                                            #{currentUserRank + 1}
+                                                        </span>
+                                                        <Avatar className="w-10 h-10 border-2 border-emerald-400">
+                                                            <AvatarFallback className="bg-emerald-600 text-white font-semibold">
+                                                                {getUserInitials(user?.name || "")}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="text-sm sm:text-base font-semibold text-slate-900">
+                                                                {user?.name}
+                                                            </p>
+                                                            <p className="text-xs text-slate-600">{rankings[currentUserRank].userId.course || "ESTG"}</p>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-base font-bold text-emerald-700">
+                                                        {rankings[currentUserRank].totalPoints.toLocaleString()} pts
+                                                    </span>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+
+                                    {/* Other Rankings */}
+                                    <div className="space-y-2 sm:space-y-3">
+                                        {otherUsers.map((rankedUser) => {
+                                            const isCurrentUser = rankedUser.userId._id === user?.id;
+
+                                            return (
+                                                <Card
+                                                    key={rankedUser.userId._id}
+                                                    className={`${isCurrentUser
+                                                        ? "border-emerald-300 bg-emerald-50"
+                                                        : "border-slate-200"
+                                                        } shadow-sm`}
+                                                >
+                                                    <CardContent className="p-3 sm:p-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                <span className="text-base sm:text-lg font-bold text-slate-600 w-8 text-center flex-shrink-0">
+                                                                    #{rankedUser.rank}
+                                                                </span>
+                                                                <Avatar className="w-10 h-10 border-2 border-slate-200 flex-shrink-0">
+                                                                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white font-semibold">
+                                                                        {getUserInitials(rankedUser.userId.name)}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="text-sm sm:text-base font-semibold text-slate-900 truncate">
+                                                                        {rankedUser.userId.name}
+                                                                    </p>
+                                                                    <p className="text-xs text-slate-600 truncate">
+                                                                        {rankedUser.userId.course || "ESTG"}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <span className="text-sm sm:text-base font-bold text-slate-700 ml-3 flex-shrink-0">
+                                                                {rankedUser.totalPoints.toLocaleString()} pts
+                                                            </span>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            )}
                         </TabsContent>
 
-                        {/* TAB CURSOS */}
-                        <TabsContent value="cursos" className="space-y-3 mt-0">
-                            <h3 className="text-sm font-semibold text-slate-600 px-1 mb-4">Top Cursos por Pontos</h3>
-
-                            {topCourses.map((course, index) => (
-                                <Card key={index} className="border-slate-200 hover:shadow-md transition-shadow">
-                                    <CardContent className="p-4 flex items-center gap-3 sm:gap-4">
-                                        <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 text-white font-bold shadow-md">
-                                            #{index + 1}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm sm:text-base font-semibold text-slate-900 truncate">
-                                                {course.name}
-                                            </p>
-                                            <p className="text-xs text-slate-500">
-                                                {course.students} estudantes ativos
-                                            </p>
-                                        </div>
-                                        <div className="text-right flex-shrink-0">
-                                            <p className="text-base sm:text-lg font-bold text-emerald-700">
-                                                {course.points.toLocaleString()}
-                                            </p>
-                                            <p className="text-xs text-slate-500">pontos</p>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
+                        {/* Course Ranking - Coming Soon */}
+                        <TabsContent value="cursos" className="mt-0">
+                            <Card className="border-slate-200">
+                                <CardContent className="p-12 text-center">
+                                    <p className="text-slate-500">Ranking por cursos em breve!</p>
+                                </CardContent>
+                            </Card>
                         </TabsContent>
                     </Tabs>
                 </div>

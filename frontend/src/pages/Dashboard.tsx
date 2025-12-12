@@ -1,27 +1,96 @@
-import { Trophy, Award, TrendingUp, Leaf, LogOut, Lightbulb, Recycle, Zap, Droplet } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Trophy, Award, TrendingUp, Leaf, Lightbulb, Recycle, Zap, Droplet, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { BottomNav } from "@/components/BottomNav";
+import { challengesApi, actionsApi, rankingApi } from "@/lib/apiServices";
+
+interface Challenge {
+    _id: string;
+    title: string;
+    description: string;
+    category: string;
+    targetCount: number;
+    bonusPoints: number;
+    startDate: string;
+    endDate: string;
+    userProgress?: number;
+}
+
+interface RecentAction {
+    _id: string;
+    templateId: {
+        title: string;
+    };
+    points: number;
+    createdAt: string;
+}
 
 export default function Dashboard() {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
+    const [weeklyChallenge, setWeeklyChallenge] = useState<Challenge | null>(null);
+    const [recentActions, setRecentActions] = useState<RecentAction[]>([]);
+    const [userRank, setUserRank] = useState<number | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Dados mockados - futuramente virão da API (desafios e ações recentes)
-    const weeklyChallenge = {
-        title: "Semana Sem Plástico",
-        description: "Evite usar plásticos descartáveis durante toda a semana",
-        progress: 3,
-        total: 7,
-        percentage: 43,
+    useEffect(() => {
+        loadDashboardData();
+    }, []);
+
+    const loadDashboardData = async () => {
+        try {
+            setLoading(true);
+            const [challengesData, actionsData, rankingData] = await Promise.all([
+                challengesApi.getActive() as Promise<{ challenges: any[]; count: number }>,
+                actionsApi.getHistory(3) as Promise<{ actions: RecentAction[] }>,
+                rankingApi.getGlobal() as Promise<{ rankings: any[]; userRank: any; total: number }>,
+            ]);
+
+            // Get first active challenge as weekly challenge
+            if (challengesData && challengesData.challenges && challengesData.challenges.length > 0) {
+                const firstChallenge = challengesData.challenges[0];
+                setWeeklyChallenge({
+                    _id: firstChallenge.challenge.id,
+                    title: firstChallenge.challenge.title,
+                    description: firstChallenge.challenge.description,
+                    category: firstChallenge.challenge.category,
+                    targetCount: firstChallenge.challenge.goalTarget,
+                    bonusPoints: firstChallenge.challenge.bonusPoints,
+                    startDate: new Date().toISOString(),
+                    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                    userProgress: firstChallenge.userProgress,
+                });
+            }
+
+            if (actionsData && actionsData.actions) {
+                setRecentActions(actionsData.actions);
+            }
+
+            // Set user ranking position
+            if (rankingData && rankingData.userRank) {
+                setUserRank(rankingData.userRank.rank);
+            }
+        } catch (error) {
+            console.error("Error loading dashboard data:", error);
+        } finally {
+            setLoading(false);
+        }
     };
-    const recentActions = [
-        { id: 1, action: "Reciclei papel", time: "Ontem às 14:30", points: 50 },
-        { id: 2, action: "Usei transporte público", time: "Ontem às 09:15", points: 30 },
-        { id: 3, action: "Trouxe garrafa reutilizável", time: "Há 2 dias", points: 20 },
-    ];
+
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+        if (diffInHours < 1) return "Há alguns minutos";
+        if (diffInHours < 24) return `Há ${diffInHours} hora${diffInHours > 1 ? "s" : ""}`;
+
+        const diffInDays = Math.floor(diffInHours / 24);
+        return `Há ${diffInDays} dia${diffInDays > 1 ? "s" : ""}`;
+    };
 
     // Dicas de sustentabilidade
     const tips = [
@@ -29,6 +98,14 @@ export default function Dashboard() {
         { id: 2, text: "Desligue equipamentos em standby", icon: Zap, color: "bg-yellow-500" },
         { id: 3, text: "Tome banhos mais curtos", icon: Droplet, color: "bg-cyan-500" },
     ];
+
+    if (loading) {
+        return (
+            <div className="min-h-dvh bg-gradient-to-b from-slate-50 to-white pb-20 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-dvh bg-gradient-to-b from-slate-50 to-white pb-20">
@@ -64,7 +141,9 @@ export default function Dashboard() {
                         <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 shadow-lg">
                             <CardContent className="p-4 sm:p-5 md:p-6 text-white">
                                 <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 mb-2" />
-                                <p className="text-2xl sm:text-3xl font-bold mb-1">#~</p>
+                                <p className="text-2xl sm:text-3xl font-bold mb-1">
+                                    #{userRank ?? "~"}
+                                </p>
                                 <p className="text-xs sm:text-sm opacity-90">Posição Ranking</p>
                             </CardContent>
                         </Card>
@@ -124,45 +203,53 @@ export default function Dashboard() {
                     </Card>
 
                     {/* Weekly Challenge */}
-                    <Card className="border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md">
-                        <CardContent className="p-4 sm:p-5 md:p-6">
-                            <div className="flex items-center justify-between mb-3 sm:mb-4 flex-wrap gap-2">
-                                <div className="flex items-center gap-2">
-                                    <TrendingUp className="w-5 h-5 text-emerald-600" />
-                                    <h3 className="text-base sm:text-lg font-semibold text-slate-900">
-                                        Desafio da Semana
-                                    </h3>
+                    {weeklyChallenge ? (
+                        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md">
+                            <CardContent className="p-4 sm:p-5">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <TrendingUp className="w-5 h-5 text-emerald-600" />
+                                        <h3 className="text-base sm:text-lg font-semibold text-slate-900">
+                                            Desafio da Semana
+                                        </h3>
+                                    </div>
+                                    <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                        Ativo
+                                    </Badge>
                                 </div>
-                                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                                    Ativo
-                                </Badge>
-                            </div>
 
-                            <h4 className="text-slate-900 font-semibold mb-2">
-                                {weeklyChallenge.title}
-                            </h4>
-                            <p className="text-sm text-slate-600 mb-4">
-                                {weeklyChallenge.description}
-                            </p>
+                                <h4 className="text-slate-900 font-semibold mb-2">
+                                    {weeklyChallenge.title}
+                                </h4>
+                                <p className="text-sm text-slate-600 mb-4">
+                                    {weeklyChallenge.description}
+                                </p>
 
-                            <div className="space-y-2 mb-4">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-600">Progresso</span>
-                                    <span className="text-emerald-700 font-semibold">
-                                        {weeklyChallenge.progress}/{weeklyChallenge.total} dias
-                                    </span>
+                                <div className="space-y-2 mb-4">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-600">Progresso</span>
+                                        <span className="text-emerald-700 font-semibold">
+                                            {weeklyChallenge.userProgress ?? 0}/{weeklyChallenge.targetCount}
+                                        </span>
+                                    </div>
+                                    <Progress
+                                        value={((weeklyChallenge.userProgress ?? 0) / weeklyChallenge.targetCount) * 100}
+                                        className="h-3 bg-emerald-100"
+                                    />
                                 </div>
-                                <Progress
-                                    value={weeklyChallenge.percentage}
-                                    className="h-3 bg-emerald-100"
-                                />
-                            </div>
 
-                            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 h-10 sm:h-11">
-                                Ver Detalhes
-                            </Button>
-                        </CardContent>
-                    </Card>
+                                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 h-10 sm:h-11">
+                                    Ver Detalhes
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="border-slate-200">
+                            <CardContent className="p-8 text-center">
+                                <p className="text-slate-500">Sem desafios ativos no momento</p>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Recent Actions */}
                     <div>
@@ -170,25 +257,32 @@ export default function Dashboard() {
                             Ações Recentes
                         </h3>
 
-                        <div className="space-y-3">
-                            {recentActions.map((item) => (
-                                <div
-                                    key={item.id}
-                                    className="flex items-center justify-between p-3 sm:p-4 bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
-                                >
-                                    <div>
-                                        <p className="text-sm sm:text-base text-slate-900 font-medium">
-                                            {item.action}
-                                        </p>
-                                        <p className="text-xs text-slate-500 mt-0.5">{item.time}</p>
+                        {recentActions.length > 0 ? (
+                            <div className="space-y-3">
+                                {recentActions.map((item) => (
+                                    <div
+                                        key={item._id}
+                                        className="flex items-center justify-between p-3 sm:p-4 bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+                                    >
+                                        <div>
+                                            <p className="text-sm sm:text-base text-slate-900 font-medium">
+                                                {item.templateId.title}
+                                            </p>
+                                            <p className="text-xs text-slate-500 mt-0.5">{formatTime(item.createdAt)}</p>
+                                        </div>
+                                        <span className="text-emerald-600 font-semibold text-sm sm:text-base">
+                                            +{item.points} pontos
+                                        </span>
                                     </div>
-                                    <span className="text-emerald-600 font-semibold text-sm sm:text-base">
-                                        +{item.points} pontos
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-
+                                ))}
+                            </div>
+                        ) : (
+                            <Card className="border-slate-200">
+                                <CardContent className="p-8 text-center">
+                                    <p className="text-slate-500">Ainda não registaste nenhuma ação</p>
+                                </CardContent>
+                            </Card>
+                        )}
                         <Button
                             variant="outline"
                             className="w-full mt-4 border-emerald-600 text-emerald-700 hover:bg-emerald-50 h-10 sm:h-11"
@@ -197,17 +291,7 @@ export default function Dashboard() {
                         </Button>
                     </div>
 
-                    {/* Logout Button */}
-                    <div className="pt-4 border-t border-slate-200">
-                        <Button
-                            onClick={logout}
-                            variant="outline"
-                            className="w-full border-slate-300 text-slate-700 hover:bg-slate-100 h-10 sm:h-11"
-                        >
-                            <LogOut className="w-4 h-4 mr-2" />
-                            Logout
-                        </Button>
-                    </div>
+
 
                     {/* Tips Section */}
                     <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-emerald-50 shadow-md">

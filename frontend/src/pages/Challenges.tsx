@@ -1,75 +1,91 @@
-import { Target, Clock, CheckCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Trophy, Calendar, Clock, CheckCircle, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BottomNav } from "@/components/BottomNav";
+import { challengesApi } from "@/lib/apiServices";
 
-// Dados mockados - futuramente virão da API
-const activeChallenges = [
-    {
-        id: 1,
-        title: "Semana Sem Plástico",
-        description: "Evite usar plásticos descartáveis durante toda a semana",
-        progress: 3,
-        target: 7,
-        reward: 200,
-        deadline: "4 dias restantes",
-    },
-    {
-        id: 2,
-        title: "Reciclar 20 Itens",
-        description: "Recicle 20 itens diferentes esta semana",
-        progress: 12,
-        target: 20,
-        reward: 150,
-        deadline: "6 dias restantes",
-    },
-];
-
-const upcomingChallenges = [
-    {
-        id: 3,
-        title: "Mês do Transporte Sustentável",
-        description: "Use transporte público, bicicleta ou caminhe durante 20 dias",
-        reward: 500,
-        startsIn: "Começa em 5 dias",
-    },
-    {
-        id: 4,
-        title: "Desafio da Água",
-        description: "Economize água com ações conscientes durante 2 semanas",
-        reward: 300,
-        startsIn: "Começa em 12 dias",
-    },
-];
-
-const completedChallenges = [
-    {
-        id: 5,
-        title: "Reciclar 10 Itens",
-        description: "Recicle 10 itens diferentes",
-        reward: 100,
-        completedDate: "Completado há 3 dias",
-    },
-    {
-        id: 6,
-        title: "Primeira Semana Verde",
-        description: "Faça 5 ações sustentáveis em uma semana",
-        reward: 150,
-        completedDate: "Completado há 1 semana",
-    },
-    {
-        id: 7,
-        title: "Poupar Energia",
-        description: "Desligue equipamentos não utilizados durante 5 dias",
-        reward: 120,
-        completedDate: "Completado há 2 semanas",
-    },
-];
+interface Challenge {
+    _id: string;
+    title: string;
+    description: string;
+    category: string;
+    targetCount: number;
+    bonusPoints: number;
+    startDate: string;
+    endDate: string;
+    isActive?: boolean;
+    userProgress?: number;
+}
 
 export default function Challenges() {
+    const [challenges, setChallenges] = useState<Challenge[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadChallenges();
+    }, []);
+
+    const loadChallenges = async () => {
+        try {
+            setLoading(true);
+            const data = await challengesApi.getActive() as Promise<{ challenges: any[]; count: number }>;
+            const resolvedData = await data;
+
+            // Map the backend response to frontend format
+            if (resolvedData && resolvedData.challenges) {
+                const mappedChallenges = resolvedData.challenges.map((item: any) => ({
+                    _id: item.challenge.id,
+                    title: item.challenge.title,
+                    description: item.challenge.description,
+                    category: item.challenge.category,
+                    targetCount: item.challenge.goalTarget,
+                    bonusPoints: item.challenge.bonusPoints,
+                    startDate: new Date().toISOString(), // Week start
+                    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Week end
+                    userProgress: item.userProgress,
+                    isActive: !item.completed,
+                }));
+                setChallenges(mappedChallenges);
+            }
+        } catch (error) {
+            console.error("Error loading challenges:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("pt-PT", { day: "2-digit", month: "short" });
+    };
+
+    const activeChallenges = challenges.filter((c) => {
+        const now = new Date();
+        const start = new Date(c.startDate);
+        const end = new Date(c.endDate);
+        return now >= start && now <= end;
+    });
+
+    const upcomingChallenges = challenges.filter((c) => {
+        const now = new Date();
+        const start = new Date(c.startDate);
+        return now < start;
+    });
+
+    // For demo purposes - completed challenges would come from another endpoint
+    const completedChallenges: Challenge[] = [];
+
+    if (loading) {
+        return (
+            <div className="min-h-dvh bg-gradient-to-b from-slate-50 to-white pb-20 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-dvh bg-gradient-to-b from-slate-50 to-white pb-20">
             <div className="max-w-4xl mx-auto">
@@ -77,11 +93,13 @@ export default function Challenges() {
                 <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-700 p-6 sm:p-8 text-white">
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                            <Target className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                            <Trophy className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                         </div>
                         <div>
                             <h2 className="text-xl sm:text-2xl font-semibold">Desafios</h2>
-                            <p className="text-white/90 text-sm sm:text-base">Complete e ganhe pontos extras</p>
+                            <p className="text-white/90 text-sm sm:text-base">
+                                {activeChallenges.length} desafios ativos
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -94,143 +112,146 @@ export default function Challenges() {
                             <TabsTrigger value="completed">Completos</TabsTrigger>
                         </TabsList>
 
-                        {/* TAB: Active Challenges */}
+                        {/* Active Challenges */}
                         <TabsContent value="active" className="space-y-4 mt-0">
-                            {activeChallenges.map((challenge) => {
-                                const progressPercent = (challenge.progress / challenge.target) * 100;
+                            {activeChallenges.length > 0 ? (
+                                activeChallenges.map((challenge) => {
+                                    const progress = challenge.userProgress ?? 0;
+                                    const progressPercentage = (progress / challenge.targetCount) * 100;
 
-                                return (
-                                    <Card
-                                        key={challenge.id}
-                                        className="border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md hover:shadow-lg transition-shadow"
-                                    >
+                                    return (
+                                        <Card
+                                            key={challenge._id}
+                                            className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 shadow-md"
+                                        >
+                                            <CardContent className="p-4 sm:p-5">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex-1">
+                                                        <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-1">
+                                                            {challenge.title}
+                                                        </h3>
+                                                        <p className="text-sm text-slate-600 mb-2">
+                                                            {challenge.description}
+                                                        </p>
+                                                    </div>
+                                                    <Badge className="bg-purple-600 hover:bg-purple-700 ml-3 flex-shrink-0">
+                                                        +{challenge.bonusPoints} pts
+                                                    </Badge>
+                                                </div>
+
+                                                <div className="space-y-2 mb-3">
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-slate-600">Progresso</span>
+                                                        <span className="text-purple-700 font-semibold">
+                                                            {progress}/{challenge.targetCount}
+                                                        </span>
+                                                    </div>
+                                                    <Progress
+                                                        value={progressPercentage}
+                                                        className="h-2 bg-purple-100"
+                                                    />
+                                                </div>
+
+                                                <div className="flex items-center gap-4 text-xs sm:text-sm text-slate-600">
+                                                    <div className="flex items-center gap-1">
+                                                        <Calendar className="w-4 h-4" />
+                                                        <span>Termina: {formatDate(challenge.endDate)}</span>
+                                                    </div>
+                                                    <Badge variant="outline" className="text-purple-700 border-purple-300">
+                                                        {challenge.category}
+                                                    </Badge>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })
+                            ) : (
+                                <Card className="border-slate-200">
+                                    <CardContent className="p-12 text-center">
+                                        <Trophy className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                                        <p className="text-slate-500">Sem desafios ativos no momento</p>
+                                        <p className="text-xs text-slate-400 mt-2">Verifica os desafios próximos!</p>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </TabsContent>
+
+                        {/* Upcoming Challenges */}
+                        <TabsContent value="upcoming" className="space-y-4 mt-0">
+                            {upcomingChallenges.length > 0 ? (
+                                upcomingChallenges.map((challenge) => (
+                                    <Card key={challenge._id} className="border-slate-200 shadow-sm">
                                         <CardContent className="p-4 sm:p-5">
-                                            <div className="flex items-start justify-between mb-3 gap-2">
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-2">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex-1">
+                                                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-1">
                                                         {challenge.title}
                                                     </h3>
-                                                    <p className="text-sm text-slate-600 mb-3">
-                                                        {challenge.description}
-                                                    </p>
+                                                    <p className="text-sm text-slate-600">{challenge.description}</p>
                                                 </div>
-                                                <Badge className="bg-emerald-600 hover:bg-emerald-700 flex-shrink-0">
-                                                    +{challenge.reward} pts
+                                                <Badge
+                                                    variant="outline"
+                                                    className="border-purple-300 text-purple-700 ml-3 flex-shrink-0"
+                                                >
+                                                    +{challenge.bonusPoints} pts
                                                 </Badge>
                                             </div>
 
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-slate-600">Progresso</span>
-                                                    <span className="text-emerald-700 font-semibold">
-                                                        {challenge.progress}/{challenge.target}
-                                                    </span>
+                                            <div className="flex items-center gap-4 text-xs sm:text-sm text-slate-600">
+                                                <div className="flex items-center gap-1">
+                                                    <Clock className="w-4 h-4" />
+                                                    <span>Começa: {formatDate(challenge.startDate)}</span>
                                                 </div>
-                                                <Progress value={progressPercent} className="h-3" />
-
-                                                <div className="flex items-center gap-1 text-xs sm:text-sm text-amber-700">
-                                                    <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                                                    {challenge.deadline}
-                                                </div>
+                                                <Badge variant="outline" className="border-slate-300">
+                                                    {challenge.category}
+                                                </Badge>
                                             </div>
-
-                                            <Button className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 h-10">
-                                                Ver Detalhes
-                                            </Button>
                                         </CardContent>
                                     </Card>
-                                );
-                            })}
-
-                            {activeChallenges.length === 0 && (
+                                ))
+                            ) : (
                                 <Card className="border-slate-200">
-                                    <CardContent className="p-8 sm:p-12 text-center">
-                                        <Target className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300 mx-auto mb-3" />
-                                        <p className="text-slate-500">Sem desafios ativos no momento</p>
+                                    <CardContent className="p-12 text-center">
+                                        <Clock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                                        <p className="text-slate-500">Sem desafios próximos agendados</p>
                                     </CardContent>
                                 </Card>
                             )}
                         </TabsContent>
 
-                        {/* TAB: Upcoming Challenges */}
-                        <TabsContent value="upcoming" className="space-y-4 mt-0">
-                            {upcomingChallenges.map((challenge) => (
-                                <Card
-                                    key={challenge.id}
-                                    className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-sky-50 shadow-md hover:shadow-lg transition-shadow"
-                                >
-                                    <CardContent className="p-4 sm:p-5">
-                                        <div className="flex items-start justify-between mb-3 gap-2">
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-2">
-                                                    {challenge.title}
-                                                </h3>
-                                                <p className="text-sm text-slate-600 mb-3">
-                                                    {challenge.description}
-                                                </p>
+                        {/* Completed Challenges */}
+                        <TabsContent value="completed" className="space-y-4 mt-0">
+                            {completedChallenges.length > 0 ? (
+                                completedChallenges.map((challenge) => (
+                                    <Card
+                                        key={challenge._id}
+                                        className="border-emerald-200 bg-emerald-50 shadow-sm"
+                                    >
+                                        <CardContent className="p-4 sm:p-5">
+                                            <div className="flex items-start justify-between mb-2">
+                                                <div className="flex-1">
+                                                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-1">
+                                                        {challenge.title}
+                                                    </h3>
+                                                    <p className="text-sm text-slate-600">{challenge.description}</p>
+                                                </div>
+                                                <CheckCircle className="w-6 h-6 text-emerald-600 ml-3 flex-shrink-0" />
                                             </div>
-                                            <Badge
-                                                variant="outline"
-                                                className="border-blue-500 text-blue-700 flex-shrink-0"
-                                            >
-                                                +{challenge.reward} pts
-                                            </Badge>
-                                        </div>
 
-                                        <div className="flex items-center gap-1 text-sm text-blue-700 font-medium">
-                                            <Clock className="w-4 h-4" />
-                                            {challenge.startsIn}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-
-                            {upcomingChallenges.length === 0 && (
+                                            <div className="flex items-center gap-2 text-sm text-emerald-700">
+                                                <span className="font-semibold">+{challenge.bonusPoints} pontos ganhos</span>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            ) : (
                                 <Card className="border-slate-200">
-                                    <CardContent className="p-8 sm:p-12 text-center">
-                                        <Clock className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300 mx-auto mb-3" />
-                                        <p className="text-slate-500">Sem desafios próximos</p>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </TabsContent>
-
-                        {/* TAB: Completed Challenges */}
-                        <TabsContent value="completed" className="space-y-3 mt-0">
-                            {completedChallenges.map((challenge) => (
-                                <Card
-                                    key={challenge.id}
-                                    className="border-slate-200 bg-slate-50 hover:shadow-md transition-shadow"
-                                >
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="text-sm sm:text-base font-semibold text-slate-900 mb-1">
-                                                    {challenge.title}
-                                                </h4>
-                                                <p className="text-xs sm:text-sm text-slate-600 mb-2">
-                                                    {challenge.description}
-                                                </p>
-                                                <p className="text-xs text-slate-500">{challenge.completedDate}</p>
-                                            </div>
-
-                                            <Badge className="bg-green-600 hover:bg-green-700 flex-shrink-0">
-                                                +{challenge.reward}
-                                            </Badge>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-
-                            {completedChallenges.length === 0 && (
-                                <Card className="border-slate-200">
-                                    <CardContent className="p-8 sm:p-12 text-center">
-                                        <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300 mx-auto mb-3" />
+                                    <CardContent className="p-12 text-center">
+                                        <CheckCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                                         <p className="text-slate-500">Ainda não completaste nenhum desafio</p>
+                                        <p className="text-xs text-slate-400 mt-2">
+                                            Completa desafios ativos para ganhares pontos bónus!
+                                        </p>
                                     </CardContent>
                                 </Card>
                             )}
