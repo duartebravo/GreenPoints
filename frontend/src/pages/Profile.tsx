@@ -1,4 +1,5 @@
-import { User, TrendingUp, Award, LogOut, Calendar, Lock, CheckCircle, Star } from "lucide-react";
+import { useEffect, useState } from "react";
+import { User, TrendingUp, Award, LogOut, Calendar, Lock, CheckCircle, Star, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -7,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { BottomNav } from "@/components/BottomNav";
+import { actionsApi } from "@/lib/apiServices";
 
 // Dados mockados - futuramente virão da API
 const earnedBadges = [
@@ -22,20 +24,63 @@ const lockedBadges = [
     { name: "Energy Champion", description: "Economize energia 100 vezes", color: "bg-yellow-500", progress: 67, target: 100, points: 200 },
 ];
 
-const recentActivity = [
-    { action: "Reciclou Plástico", time: "Hoje às 14:30", points: 25 },
-    { action: "Usou Transporte Público", time: "Ontem às 09:15", points: 30 },
-    { action: "Trouxe Garrafa Reutilizável", time: "Há 2 dias", points: 20 },
-];
+interface RecentActivity {
+    _id: string;
+    templateId: {
+        title: string;
+    };
+    points: number;
+    createdAt: string;
+}
 
 export default function Profile() {
     const { user, logout } = useAuth();
+    const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+    const [stats, setStats] = useState<{ totalActions: number; rank: number } | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Stats mockados - futuramente virão da API
-    const actionsCompleted = user?.actionsCount
-        ? Object.values(user.actionsCount).reduce((acc, count) => acc + count, 0)
-        : 0;
-    const rankingPosition = 8; // mockado
+    useEffect(() => {
+        loadProfileData();
+    }, []);
+
+    const loadProfileData = async () => {
+        try {
+            setLoading(true);
+            const [activityData, statsData] = await Promise.all([
+                actionsApi.getHistory(5) as Promise<{ actions: RecentActivity[] }>,
+                actionsApi.getStats() as Promise<{ totalActions: number; rank: number }>,
+            ]);
+
+            const resolvedActivity = await activityData;
+            const resolvedStats = await statsData;
+
+            if (resolvedActivity && resolvedActivity.actions) {
+                setRecentActivity(resolvedActivity.actions);
+            }
+            if (resolvedStats) {
+                setStats(resolvedStats);
+            }
+        } catch (error) {
+            console.error("Error loading profile data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("pt-PT", { day: "2-digit", month: "short" }) + " às " + date.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+    };
+
+    // Use stats from API or calculate from user actionsCount
+    const actionsCompleted = stats?.totalActions ?? (
+        user?.actionsCount
+            ? Object.entries(user.actionsCount)
+                .filter(([key, value]) => key !== '_id' && typeof value === 'number')
+                .reduce((acc, [, count]) => acc + count, 0)
+            : 0
+    );
+    const rankingPosition = stats?.rank ?? 8;
     const activeDays = 42; // mockado
 
     const userInitials = user?.name
@@ -209,29 +254,41 @@ export default function Profile() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2 sm:space-y-3">
-                            {recentActivity.map((activity, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center justify-between p-3 sm:p-4 bg-slate-50 rounded-lg border border-slate-100"
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm sm:text-base font-medium text-slate-900 truncate">
-                                            {activity.action}
-                                        </p>
-                                        <p className="text-xs text-slate-500">{activity.time}</p>
-                                    </div>
-                                    <span className="text-sm sm:text-base font-semibold text-emerald-600 ml-3 flex-shrink-0">
-                                        +{activity.points}
-                                    </span>
-                                </div>
-                            ))}
+                            {recentActivity.length > 0 ? (
+                                <>
+                                    {recentActivity.map((activity) => (
+                                        <div
+                                            key={activity._id}
+                                            className="flex items-center justify-between p-3 sm:p-4 bg-slate-50 rounded-lg border border-slate-100"
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm sm:text-base font-medium text-slate-900 truncate">
+                                                    {activity.templateId.title}
+                                                </p>
+                                                <p className="text-xs text-slate-500">{formatTime(activity.createdAt)}</p>
+                                            </div>
+                                            <span className="text-sm sm:text-base font-semibold text-emerald-600 ml-3 flex-shrink-0">
+                                                +{activity.points}
+                                            </span>
+                                        </div>
+                                    ))}
 
-                            <Button
-                                variant="outline"
-                                className="w-full border-slate-300 text-slate-700 hover:bg-slate-100 h-10 sm:h-11"
-                            >
-                                Ver Histórico Completo
-                            </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full border-slate-300 text-slate-700 hover:bg-slate-100 h-10 sm:h-11"
+                                    >
+                                        Ver Histórico Completo
+                                    </Button>
+                                </>
+                            ) : loading ? (
+                                <div className="p-8 text-center">
+                                    <Loader2 className="w-8 h-8 text-slate-400 mx-auto animate-spin" />
+                                </div>
+                            ) : (
+                                <div className="p-8 text-center">
+                                    <p className="text-slate-500">Sem atividade recente</p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 

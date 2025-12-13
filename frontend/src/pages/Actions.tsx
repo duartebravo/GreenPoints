@@ -1,79 +1,134 @@
-import { useState } from "react";
-import { X, Recycle, Zap, Droplet, Bus, Coffee, Users } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Recycle, Zap, Droplet, Bus, Coffee, Users, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { BottomNav } from "@/components/BottomNav";
+import { actionsApi } from "@/lib/apiServices";
+import { useAuth } from "@/hooks/useAuth";
 
-// Dados mockados - futuramente virão da API
-const categories = [
-    { id: "recycle", name: "Reciclagem", icon: Recycle, color: "bg-blue-500", actions: 4 },
-    { id: "energy", name: "Energia", icon: Zap, color: "bg-yellow-500", actions: 3 },
-    { id: "water", name: "Água", icon: Droplet, color: "bg-cyan-500", actions: 2 },
-    { id: "transport", name: "Transporte", icon: Bus, color: "bg-green-500", actions: 4 },
-    { id: "consumption", name: "Consumo", icon: Coffee, color: "bg-orange-500", actions: 3 },
-    { id: "community", name: "Comunidade", icon: Users, color: "bg-purple-500", actions: 3 },
-];
-
-const actionsByCategory: Record<string, { name: string; points: number }[]> = {
-    recycle: [
-        { name: "Reciclar papel", points: 20 },
-        { name: "Reciclar plástico", points: 25 },
-        { name: "Reciclar vidro", points: 30 },
-        { name: "Reciclar metal", points: 30 },
-    ],
-    energy: [
-        { name: "Desligar luzes", points: 15 },
-        { name: "Modo suspensão PC", points: 10 },
-        { name: "Usar luz natural", points: 20 },
-    ],
-    water: [
-        { name: "Fechar torneira", points: 15 },
-        { name: "Reduzir tempo de banho", points: 25 },
-    ],
-    transport: [
-        { name: "Usar transporte público", points: 30 },
-        { name: "Vir de bicicleta", points: 35 },
-        { name: "Vir a pé", points: 25 },
-        { name: "Partilhar boleia", points: 20 },
-    ],
-    consumption: [
-        { name: "Trazer garrafa reutilizável", points: 20 },
-        { name: "Usar caneca própria", points: 15 },
-        { name: "Evitar descartáveis", points: 25 },
-    ],
-    community: [
-        { name: "Partilhar dica sustentável", points: 10 },
-        { name: "Organizar evento eco", points: 50 },
-        { name: "Ajudar colega", points: 15 },
-    ],
+// Category icons mapping - PORTUGUESE category names to match backend
+const categoryIcons: Record<string, any> = {
+    reciclagem: { icon: Recycle, color: "bg-blue-500" },
+    energia: { icon: Zap, color: "bg-yellow-500" },
+    agua: { icon: Droplet, color: "bg-cyan-500" },
+    transporte: { icon: Bus, color: "bg-green-500" },
+    consumo: { icon: Coffee, color: "bg-orange-500" },
+    comunidade: { icon: Users, color: "bg-purple-500" },
 };
 
-const todayActions = [
-    { name: "Reciclei papel", points: 50, time: "Ontem às 14:30" },
-    { name: "Usei transporte público", points: 30, time: "Ontem às 09:15" },
-    { name: "Trouxe garrafa reutilizável", points: 20, time: "Há 2 dias" },
-];
+// Portuguese category display names
+const categoryNames: Record<string, string> = {
+    reciclagem: "Reciclagem",
+    energia: "Energia",
+    agua: "Água",
+    transporte: "Transporte",
+    consumo: "Consumo",
+    comunidade: "Comunidade",
+};
+
+interface ActionTemplate {
+    _id: string;
+    title: string;
+    description?: string;
+    category: string;
+    points: number;
+    icon?: string;
+}
+
+interface TodayAction {
+    templateId: {
+        title: string;
+    };
+    points: number;
+    createdAt: string;
+}
 
 export default function Actions() {
+    const { refreshUser } = useAuth();
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [showPopup, setShowPopup] = useState(false);
+    const [templates, setTemplates] = useState<ActionTemplate[]>([]);
+    const [todayData, setTodayData] = useState<{ actions: TodayAction[]; pointsToday: number; count: number } | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
 
-    // Stats mockados - futuramente virão da API
-    const todayPoints = 150;
-    const todayActionsCount = 5;
+    // Load templates and today's actions on mount
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [templatesData, todayActionsData] = await Promise.all([
+                actionsApi.getTemplates() as Promise<ActionTemplate[]>,
+                actionsApi.getTodayActions() as Promise<{ actions: TodayAction[]; pointsToday: number; count: number }>,
+            ]);
+            setTemplates(templatesData);
+            setTodayData(todayActionsData);
+        } catch (error) {
+            console.error("Error loading data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Group templates by category
+    const categoriesWithCounts = Object.keys(categoryIcons).map((catId) => {
+        const count = templates.filter((t) => t.category === catId).length;
+        return {
+            id: catId,
+            name: categoryNames[catId],
+            ...categoryIcons[catId],
+            actions: count,
+        };
+    });
+
+    const getTemplatesByCategory = (category: string) => {
+        return templates.filter((t) => t.category === category);
+    };
 
     const handleCategoryClick = (categoryId: string) => {
         setSelectedCategory(categoryId);
         setShowPopup(true);
     };
 
-    const handleActionSelect = (action: { name: string; points: number }) => {
-        // Aqui seria registada a ação na API
-        console.log("Ação selecionada:", action);
-        // TODO: await api("/actions", { method: "POST", body: JSON.stringify({ action }) })
-        // TODO: refreshUser() para atualizar pontos
-        setShowPopup(false);
-        setSelectedCategory(null);
+    const handleActionSelect = async (template: ActionTemplate) => {
+        try {
+            setSubmitting(true);
+            await actionsApi.registerAction(template._id);
+
+            // Refresh user data and today's actions
+            await Promise.all([refreshUser(), loadData()]);
+
+            setShowPopup(false);
+            setSelectedCategory(null);
+        } catch (error) {
+            console.error("Error registering action:", error);
+            alert("Erro ao registar ação. Tente novamente.");
+        } finally {
+            setSubmitting(false);
+        }
     };
+
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+        if (diffInHours < 1) return "Há alguns minutos";
+        if (diffInHours < 24) return `Há ${diffInHours} hora${diffInHours > 1 ? "s" : ""}`;
+
+        const diffInDays = Math.floor(diffInHours / 24);
+        return `Há ${diffInDays} dia${diffInDays > 1 ? "s" : ""}`;
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-dvh bg-gradient-to-b from-slate-50 to-white pb-20 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-dvh bg-gradient-to-b from-slate-50 to-white pb-20 relative">
@@ -92,13 +147,13 @@ export default function Actions() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-2xl sm:text-3xl font-bold text-emerald-700">
-                                        +{todayPoints}
+                                        +{todayData?.pointsToday ?? 0}
                                     </p>
                                     <p className="text-xs sm:text-sm text-slate-600">pontos ganhos</p>
                                 </div>
                                 <div>
                                     <p className="text-2xl sm:text-3xl font-bold text-blue-700">
-                                        {todayActionsCount}
+                                        {todayData?.count ?? 0}
                                     </p>
                                     <p className="text-xs sm:text-sm text-slate-600">ações registadas</p>
                                 </div>
@@ -113,7 +168,7 @@ export default function Actions() {
                         </h3>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                            {categories.map((category) => {
+                            {categoriesWithCounts.map((category) => {
                                 const Icon = category.icon;
 
                                 return (
@@ -143,24 +198,32 @@ export default function Actions() {
                             Histórico de Hoje
                         </h3>
 
-                        <div className="space-y-2 sm:space-y-3">
-                            {todayActions.map((action, idx) => (
-                                <div
-                                    key={idx}
-                                    className="flex items-center justify-between p-3 sm:p-4 bg-white rounded-lg border border-slate-200 shadow-sm"
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm sm:text-base font-medium text-slate-900 truncate">
-                                            {action.name}
-                                        </p>
-                                        <p className="text-xs text-slate-500">{action.time}</p>
+                        {todayData && todayData.actions.length > 0 ? (
+                            <div className="space-y-2 sm:space-y-3">
+                                {todayData.actions.map((action, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="flex items-center justify-between p-3 sm:p-4 bg-white rounded-lg border border-slate-200 shadow-sm"
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm sm:text-base font-medium text-slate-900 truncate">
+                                                {action.templateId.title}
+                                            </p>
+                                            <p className="text-xs text-slate-500">{formatTime(action.createdAt)}</p>
+                                        </div>
+                                        <span className="text-sm sm:text-base font-semibold text-emerald-600 ml-3 flex-shrink-0">
+                                            +{action.points} pontos
+                                        </span>
                                     </div>
-                                    <span className="text-sm sm:text-base font-semibold text-emerald-600 ml-3 flex-shrink-0">
-                                        +{action.points} pontos
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <Card className="border-slate-200">
+                                <CardContent className="p-8 text-center">
+                                    <p className="text-slate-500">Ainda não registaste nenhuma ação hoje</p>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
             </div>
@@ -171,7 +234,7 @@ export default function Actions() {
                     <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl p-6 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 shadow-2xl">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg sm:text-xl font-semibold text-slate-900">
-                                {categories.find((c) => c.id === selectedCategory)?.name}
+                                {categoriesWithCounts.find((c) => c.id === selectedCategory)?.name}
                             </h3>
                             <button
                                 onClick={() => {
@@ -179,23 +242,26 @@ export default function Actions() {
                                     setSelectedCategory(null);
                                 }}
                                 className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                disabled={submitting}
                             >
                                 <X className="w-5 h-5 text-slate-600" />
                             </button>
                         </div>
 
                         <div className="space-y-2 max-h-[60vh] sm:max-h-[400px] overflow-y-auto">
-                            {actionsByCategory[selectedCategory]?.map((action, idx) => (
+                            {getTemplatesByCategory(selectedCategory).map((template) => (
                                 <button
-                                    key={idx}
-                                    onClick={() => handleActionSelect(action)}
-                                    className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-transparent rounded-lg transition-all text-left"
+                                    key={template._id}
+                                    onClick={() => handleActionSelect(template)}
+                                    disabled={submitting}
+                                    className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-transparent rounded-lg transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <span className="text-sm sm:text-base font-medium text-slate-900">
-                                        {action.name}
+                                        {template.title}
                                     </span>
-                                    <span className="text-sm sm:text-base font-semibold text-emerald-600 ml-3">
-                                        +{action.points} pts
+                                    <span className="text-sm sm:text-base font-semibold text-emerald-600 ml-3 flex items-center gap-2">
+                                        {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                        +{template.points} pts
                                     </span>
                                 </button>
                             ))}
