@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-  Trophy,
+ useNavigate } from "react-router-dom";
+import { Trophy,
   Award,
   TrendingUp,
   Leaf,
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { BottomNav } from "@/components/BottomNav";
+import NotificationPanel from "@/components/NotificationPanel";
 import { challengesApi, actionsApi, rankingApi } from "@/lib/apiServices";
 
 interface Challenge {
@@ -164,8 +165,11 @@ export default function Dashboard() {
                 Continua a fazer a diferença!
               </p>
             </div>
-            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-              <Leaf className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-600" />
+            <div className="flex items-center gap-3">
+              <NotificationPanel />
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+                <Leaf className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-600" />
+              </div>
             </div>
           </div>
         </div>
@@ -270,7 +274,7 @@ export default function Dashboard() {
                   {weeklyChallenge.description}
                 </p>
 
-                <div className="space-y-2">
+                <div className="space-y-2 ">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600">Progresso</span>
                     <span className="text-emerald-700 font-semibold">
@@ -287,6 +291,8 @@ export default function Dashboard() {
                     className="h-3 bg-emerald-100"
                   />
                 </div>
+
+
               </CardContent>
             </Card>
           ) : (
