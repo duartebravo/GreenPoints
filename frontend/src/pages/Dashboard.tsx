@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  Trophy,
+ useNavigate } from "react-router-dom";
+import { Trophy,
   Award,
   TrendingUp,
   Leaf,
@@ -42,6 +43,7 @@ interface RecentAction {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [weeklyChallenge, setWeeklyChallenge] = useState<Challenge | null>(
     null,
   );
@@ -160,7 +162,7 @@ export default function Dashboard() {
                 Olá, {user?.name.split(" ")[0]}! 👋
               </h2>
               <p className="text-white/90 text-sm sm:text-base">
-                Continue fazendo a diferença!
+                Continua a fazer a diferença!
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -272,7 +274,7 @@ export default function Dashboard() {
                   {weeklyChallenge.description}
                 </p>
 
-                <div className="space-y-2 mb-4">
+                <div className="space-y-2 ">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600">Progresso</span>
                     <span className="text-emerald-700 font-semibold">
@@ -290,9 +292,7 @@ export default function Dashboard() {
                   />
                 </div>
 
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 h-10 sm:h-11">
-                  Ver Detalhes
-                </Button>
+
               </CardContent>
             </Card>
           ) : (
@@ -342,6 +342,7 @@ export default function Dashboard() {
             <Button
               variant="outline"
               className="w-full mt-4 border-emerald-600 text-emerald-700 hover:bg-emerald-50 h-10 sm:h-11"
+              onClick={() => navigate("/actions")}
             >
               Registar Nova Ação
             </Button>
