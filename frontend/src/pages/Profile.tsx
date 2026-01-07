@@ -18,70 +18,9 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { BottomNav } from "@/components/BottomNav";
-import { actionsApi } from "@/lib/apiServices";
+import { actionsApi, badgesApi } from "@/lib/apiServices";
 
-// Dados mockados - futuramente virão da API
-const earnedBadges = [
-  {
-    name: "Eco Warrior",
-    description: "Complete 50 ações sustentáveis",
-    color: "bg-emerald-500",
-    icon: "award",
-    points: 100,
-    earnedDate: "Há 3 dias",
-  },
-  {
-    name: "Recycler Pro",
-    description: "Recicle 100 itens diferentes",
-    color: "bg-blue-500",
-    icon: "shield",
-    points: 150,
-    earnedDate: "Há 1 semana",
-  },
-  {
-    name: "Streak Master",
-    description: "Mantenha uma sequência de 30 dias",
-    color: "bg-orange-500",
-    icon: "flame",
-    points: 200,
-    earnedDate: "Há 2 semanas",
-  },
-  {
-    name: "Point Master",
-    description: "Acumule 1000 pontos",
-    color: "bg-purple-500",
-    icon: "star",
-    points: 150,
-    earnedDate: "Há 1 mês",
-  },
-];
 
-const lockedBadges = [
-  {
-    name: "Transport Hero",
-    description: "Use transporte sustentável por 60 dias",
-    color: "bg-green-500",
-    progress: 35,
-    target: 60,
-    points: 250,
-  },
-  {
-    name: "Water Saver",
-    description: "Complete 50 ações de economia de água",
-    color: "bg-cyan-500",
-    progress: 22,
-    target: 50,
-    points: 180,
-  },
-  {
-    name: "Energy Champion",
-    description: "Economize energia 100 vezes",
-    color: "bg-yellow-500",
-    progress: 67,
-    target: 100,
-    points: 200,
-  },
-];
 
 interface RecentActivity {
   _id: string;
@@ -99,6 +38,8 @@ export default function Profile() {
     totalActions: number;
     rank: number;
   } | null>(null);
+  const [earnedBadges, setEarnedBadges] = useState<any[]>([]);
+  const [availableBadges, setAvailableBadges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFullHistory, setShowFullHistory] = useState(false);
 
@@ -110,11 +51,15 @@ export default function Profile() {
     try {
       setLoading(true);
       const limit = showFullHistory ? undefined : 5;
-      const [activityData, statsData] = await Promise.all([
+      const [activityData, statsData, badgesData] = await Promise.all([
         actionsApi.getHistory(limit) as Promise<{ actions: RecentActivity[] }>,
         actionsApi.getStats() as Promise<{
           totalActions: number;
           rank: number;
+        }>,
+        badgesApi.getMyBadges() as Promise<{
+          success: boolean;
+          data: { earned: any[]; available: any[] };
         }>,
       ]);
 
@@ -126,6 +71,10 @@ export default function Profile() {
       }
       if (resolvedStats) {
         setStats(resolvedStats);
+      }
+      if (badgesData && badgesData.data) {
+        setEarnedBadges(badgesData.data.earned);
+        setAvailableBadges(badgesData.data.available);
       }
     } catch (error) {
       console.error("Error loading profile data:", error);
@@ -154,8 +103,8 @@ export default function Profile() {
     stats?.totalActions ??
     (user?.actionsCount
       ? Object.entries(user.actionsCount)
-          .filter(([key, value]) => key !== "_id" && typeof value === "number")
-          .reduce((acc, [, count]) => acc + count, 0)
+        .filter(([key, value]) => key !== "_id" && typeof value === "number")
+        .reduce((acc, [, count]) => acc + count, 0)
       : 0);
   const rankingPosition = stats?.rank ?? 8;
 
@@ -256,8 +205,7 @@ export default function Profile() {
                   Badges
                 </div>
                 <span className="text-sm font-normal text-amber-600">
-                  {user?.badges.length ?? earnedBadges.length}/
-                  {earnedBadges.length + lockedBadges.length}
+                  {earnedBadges.length}/{earnedBadges.length + availableBadges.length}
                 </span>
               </CardTitle>
             </CardHeader>
@@ -271,52 +219,13 @@ export default function Profile() {
                 {/* Earned Badges */}
                 <TabsContent value="earned" className="space-y-3 mt-0">
                   {earnedBadges.map((badge, index) => {
-                    const renderIcon = (icon: string) => {
-                      switch (icon) {
-                        case "award":
-                          return (
-                            <Award className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                          );
-                        case "shield":
-                          return (
-                            <svg
-                              className="w-5 h-5 sm:w-6 sm:h-6 text-white"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
-                            </svg>
-                          );
-                        case "flame":
-                          return (
-                            <svg
-                              className="w-5 h-5 sm:w-6 sm:h-6 text-white"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z" />
-                            </svg>
-                          );
-                        case "star":
-                          return (
-                            <Star className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                          );
-                        default:
-                          return (
-                            <Award className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                          );
-                      }
-                    };
-
                     return (
                       <div
                         key={index}
                         className="flex items-center gap-3 p-3 bg-white rounded-lg border border-emerald-200"
                       >
-                        <div
-                          className={`w-12 h-12 sm:w-14 sm:h-14 ${badge.color} rounded-full flex items-center justify-center flex-shrink-0 shadow-md`}
-                        >
-                          {renderIcon(badge.icon)}
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md text-2xl sm:text-3xl">
+                          {badge.emoji}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm sm:text-base font-semibold text-slate-900">
@@ -340,7 +249,7 @@ export default function Profile() {
 
                 {/* Available Badges */}
                 <TabsContent value="locked" className="space-y-3 mt-0">
-                  {lockedBadges.map((badge, index) => {
+                  {availableBadges.map((badge, index) => {
                     const progressPercent =
                       (badge.progress / badge.target) * 100;
 

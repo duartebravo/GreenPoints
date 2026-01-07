@@ -10,6 +10,7 @@ import indexRoutes from "./routes/indexRoutes.js";
 import actionRoutes from "./routes/actionRoutes.js";
 import rankingRoutes from "./routes/rankingRoutes.js";
 import challengeRoutes from "./routes/challengeRoutes.js";
+import badgeRoutes from "./routes/badgeRoutes.js";
 import { seedActionTemplates } from "./config/seedActionTemplates.js";
 import { getRandomTip, getTipByCategory, getDailyTip } from "./utils/tipHelper.js";
 import { ensureWeeklyChallenges } from "./utils/challengeHelper.js";
@@ -23,6 +24,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/actions", actionRoutes);
 app.use("/api/rankings", rankingRoutes);
 app.use("/api/challenges", challengeRoutes);
+app.use("/api/badges", badgeRoutes);
 app.use("/api", indexRoutes);
 
 // HTTP + WebSockets

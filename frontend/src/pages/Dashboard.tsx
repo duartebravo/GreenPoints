@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import {
- useNavigate } from "react-router-dom";
-import { Trophy,
+  useNavigate
+} from "react-router-dom";
+import {
+  Trophy,
   Award,
   TrendingUp,
   Leaf,
@@ -18,7 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { BottomNav } from "@/components/BottomNav";
 import NotificationPanel from "@/components/NotificationPanel";
-import { challengesApi, actionsApi, rankingApi } from "@/lib/apiServices";
+import { challengesApi, actionsApi, rankingApi, badgesApi } from "@/lib/apiServices";
 
 interface Challenge {
   _id: string;
@@ -49,6 +51,7 @@ export default function Dashboard() {
   );
   const [recentActions, setRecentActions] = useState<RecentAction[]>([]);
   const [userRank, setUserRank] = useState<number | null>(null);
+  const [recentBadges, setRecentBadges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,7 +61,7 @@ export default function Dashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [challengesData, actionsData, rankingData] = await Promise.all([
+      const [challengesData, actionsData, rankingData, badgesData] = await Promise.all([
         challengesApi.getActive() as Promise<{
           challenges: any[];
           count: number;
@@ -68,6 +71,10 @@ export default function Dashboard() {
           rankings: any[];
           userRank: any;
           total: number;
+        }>,
+        badgesApi.getMyBadges() as Promise<{
+          success: boolean;
+          data: { earned: any[]; available: any[] };
         }>,
       ]);
 
@@ -98,6 +105,11 @@ export default function Dashboard() {
       // Set user ranking position
       if (rankingData && rankingData.userRank) {
         setUserRank(rankingData.userRank.rank);
+      }
+
+      // Set recent badges (last 3 earned)
+      if (badgesData && badgesData.data && badgesData.data.earned) {
+        setRecentBadges(badgesData.data.earned.slice(-3).reverse());
       }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
@@ -208,46 +220,26 @@ export default function Dashboard() {
                 </h3>
               </div>
 
-              <div className="flex gap-4 sm:gap-6 justify-center flex-wrap">
-                <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center mb-2 shadow-md">
-                    <Trophy className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-700 text-center font-medium">
-                    Eco Warrior
+              {recentBadges.length > 0 ? (
+                <div className="flex gap-4 sm:gap-6 justify-center flex-wrap">
+                  {recentBadges.map((badge, index) => (
+                    <div key={index} className="flex flex-col items-center">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center mb-2 shadow-md text-2xl sm:text-3xl">
+                        {badge.emoji}
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-700 text-center font-medium max-w-[80px]">
+                        {badge.name}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-slate-500 text-sm">
+                    Ainda não conquistaste nenhum badge. Continua a realizar ações sustentáveis!
                   </p>
                 </div>
-
-                <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mb-2 shadow-md">
-                    <svg
-                      className="w-7 h-7 sm:w-8 sm:h-8 text-white"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z" />
-                    </svg>
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-700 text-center font-medium">
-                    Recycler Pro
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-full flex items-center justify-center mb-2 shadow-md">
-                    <svg
-                      className="w-7 h-7 sm:w-8 sm:h-8 text-white"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" />
-                    </svg>
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-700 text-center font-medium">
-                    Energy Saver
-                  </p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
