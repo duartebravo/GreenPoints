@@ -22,8 +22,14 @@ router.get("/me", auth, async (req, res) => {
             });
         }
 
+        // Converter para objeto simples (sem métodos do Mongoose)
+        const userObj = user.toObject();
+
+        // Log para debug
+        console.log("User actionsCount:", userObj.actionsCount);
+
         // Obter badges conquistados e disponíveis com progresso
-        const badgeData = getUserBadgeProgress(user);
+        const badgeData = getUserBadgeProgress(userObj);
 
         res.json({
             success: true,

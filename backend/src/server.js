@@ -82,7 +82,7 @@ server.listen(PORT, async () => {
   await seedActionTemplates(); // Popular templates de ações
   await ensureWeeklyChallenges(); // Garantir desafios semanais
 
-  // Broadcast periódico de dicas (a cada 10 minutos)
+  // Broadcast periódico de dicas (a cada 2 minutos)
   setInterval(() => {
     const tip = getRandomTip();
     io.emit("tip:broadcast", {
@@ -91,10 +91,11 @@ server.listen(PORT, async () => {
       timestamp: new Date()
     });
     console.log("📢 Dica enviada:", tip.title);
-  }, 10 * 60 * 1000); // 10 minutos
+  }, 2 * 60 * 1000); // 2 minutos
+
 
   console.log(`🚀 API em http://localhost:${PORT}`);
-  console.log(`💡 Dicas periódicas ativadas (a cada 10 min)`);
+  console.log(`💡 Dicas periódicas ativadas (a cada 2 min)`);
 });
 
 // Exportar io para uso em outros módulos (opcional)

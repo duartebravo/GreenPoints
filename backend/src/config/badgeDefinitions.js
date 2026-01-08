@@ -6,6 +6,7 @@ export const BADGE_DEFINITIONS = [
         name: "Iniciante Verde",
         emoji: "🌱",
         description: "Atingir 50 pontos",
+        points: 50,
         criteria: (user) => user.points >= 50
     },
     {
@@ -13,6 +14,7 @@ export const BADGE_DEFINITIONS = [
         name: "Eco-Warrior",
         emoji: "🌿",
         description: "Atingir 200 pontos",
+        points: 100,
         criteria: (user) => user.points >= 200
     },
     {
@@ -20,6 +22,7 @@ export const BADGE_DEFINITIONS = [
         name: "Guardião da Natureza",
         emoji: "🌳",
         description: "Atingir 500 pontos",
+        points: 200,
         criteria: (user) => user.points >= 500
     },
     {
@@ -27,6 +30,7 @@ export const BADGE_DEFINITIONS = [
         name: "Campeão Sustentável",
         emoji: "🏆",
         description: "Atingir 1000 pontos",
+        points: 500,
         criteria: (user) => user.points >= 1000
     },
 
@@ -36,6 +40,7 @@ export const BADGE_DEFINITIONS = [
         name: "Mestre da Reciclagem",
         emoji: "♻️",
         description: "Realizar 10 ações de reciclagem",
+        points: 150,
         criteria: (user) => user.actionsCount.reciclagem >= 10
     },
     {
@@ -43,6 +48,7 @@ export const BADGE_DEFINITIONS = [
         name: "Poupador de Energia",
         emoji: "⚡",
         description: "Realizar 10 ações de energia",
+        points: 150,
         criteria: (user) => user.actionsCount.energia >= 10
     },
     {
@@ -50,6 +56,7 @@ export const BADGE_DEFINITIONS = [
         name: "Guardião da Água",
         emoji: "💧",
         description: "Realizar 10 ações de água",
+        points: 150,
         criteria: (user) => user.actionsCount.agua >= 10
     },
     {
@@ -57,6 +64,7 @@ export const BADGE_DEFINITIONS = [
         name: "Mobilidade Verde",
         emoji: "🚴",
         description: "Realizar 10 ações de transporte",
+        points: 150,
         criteria: (user) => user.actionsCount.transporte >= 10
     },
     {
@@ -64,6 +72,7 @@ export const BADGE_DEFINITIONS = [
         name: "Ativista Local",
         emoji: "🌍",
         description: "Realizar 5 ações de comunidade",
+        points: 100,
         criteria: (user) => user.actionsCount.comunidade >= 5
     },
 
@@ -73,6 +82,7 @@ export const BADGE_DEFINITIONS = [
         name: "Consistente",
         emoji: "📊",
         description: "Registar 10 ações",
+        points: 75,
         criteria: (user) => {
             const total = Object.values(user.actionsCount).reduce((sum, count) => sum + count, 0);
             return total >= 10;
@@ -83,6 +93,7 @@ export const BADGE_DEFINITIONS = [
         name: "Dedicado",
         emoji: "🔥",
         description: "Registar 50 ações",
+        points: 200,
         criteria: (user) => {
             const total = Object.values(user.actionsCount).reduce((sum, count) => sum + count, 0);
             return total >= 50;
@@ -93,6 +104,7 @@ export const BADGE_DEFINITIONS = [
         name: "Incansável",
         emoji: "💪",
         description: "Registar 100 ações",
+        points: 300,
         criteria: (user) => {
             const total = Object.values(user.actionsCount).reduce((sum, count) => sum + count, 0);
             return total >= 100;

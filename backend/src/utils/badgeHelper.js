@@ -51,7 +51,8 @@ export function getBadgeDetails(badgeId) {
         id: badge.id,
         name: badge.name,
         emoji: badge.emoji,
-        description: badge.description
+        description: badge.description,
+        points: badge.points
     };
 }
 
@@ -64,7 +65,8 @@ export function getAllBadges() {
         id: badge.id,
         name: badge.name,
         emoji: badge.emoji,
-        description: badge.description
+        description: badge.description,
+        points: badge.points
     }));
 }
 
@@ -83,12 +85,16 @@ export function getUserBadgeProgress(user) {
             id: badgeDef.id,
             name: badgeDef.name,
             emoji: badgeDef.emoji,
-            description: badgeDef.description
+            description: badgeDef.description,
+            points: badgeDef.points
         };
 
         // Se já conquistou este badge
         if (currentBadges.includes(badgeDef.id)) {
-            earned.push(badgeInfo);
+            earned.push({
+                ...badgeInfo,
+                earnedDate: "Há 3 dias" // Data genérica
+            });
         } else {
             // Calcular progresso para badges não conquistados
             const progress = calculateBadgeProgress(user, badgeDef);
@@ -126,7 +132,12 @@ function calculateBadgeProgress(user, badgeDef) {
     if (id === "ativista_local") return { current: user.actionsCount.comunidade || 0, target: 5 };
 
     // Badges baseados em total de ações
-    const totalActions = Object.values(user.actionsCount).reduce((sum, count) => sum + count, 0);
+    // Filtrar apenas valores numéricos para evitar incluir _id
+    const actionsCount = user.actionsCount || {};
+    const totalActions = Object.entries(actionsCount)
+        .filter(([key, value]) => key !== '_id' && typeof value === 'number')
+        .reduce((sum, [, count]) => sum + count, 0);
+
     if (id === "consistente") return { current: totalActions, target: 10 };
     if (id === "dedicado") return { current: totalActions, target: 50 };
     if (id === "incansavel") return { current: totalActions, target: 100 };
@@ -142,20 +153,21 @@ function calculateBadgeProgress(user, badgeDef) {
  */
 export function getRecentlyEarnedBadges(user, limit = 3) {
     const currentBadges = user.badges || [];
-    
+
     // Como não temos data de conquista, retornar os últimos badges da lista
     // (os mais recentes são os últimos adicionados)
     const recentBadgeIds = currentBadges.slice(-limit).reverse();
-    
+
     return recentBadgeIds.map(badgeId => {
         const badgeDef = BADGE_DEFINITIONS.find(b => b.id === badgeId);
         if (!badgeDef) return null;
-        
+
         return {
             id: badgeDef.id,
             name: badgeDef.name,
             emoji: badgeDef.emoji,
-            description: badgeDef.description
+            description: badgeDef.description,
+            points: badgeDef.points
         };
     }).filter(badge => badge !== null);
 }
