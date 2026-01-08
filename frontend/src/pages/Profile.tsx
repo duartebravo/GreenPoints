@@ -6,7 +6,6 @@ import {
   LogOut,
   Calendar,
   CheckCircle,
-  Star,
   Loader2,
   Unlock,
 } from "lucide-react";
