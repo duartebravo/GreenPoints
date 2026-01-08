@@ -43,3 +43,25 @@ export const login = async (req, res) => {
     res.status(400).json({ error: e.message });
   }
 };
+
+export const getMe = async (req, res) => {
+  try {
+    // req.user é definido pelo middleware auth (contém { sub, role })
+    const user = await User.findById(req.user.sub).select("-password");
+    if (!user) return res.status(404).json({ error: "Utilizador não encontrado" });
+
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      points: user.points,
+      badges: user.badges,
+      actionsCount: user.actionsCount,
+      createdAt: user.createdAt
+    });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+};
+
