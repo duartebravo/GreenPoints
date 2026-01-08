@@ -147,4 +147,5 @@ frontend/dist-ssr/
 frontend/*.local
 frontend/.vscode/
 frontend/.DS_Store
+frontend/.vite/
 
