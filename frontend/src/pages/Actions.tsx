@@ -287,18 +287,18 @@ export default function Actions() {
               </button>
             </div>
 
-            <div className="space-y-1 px-3 py-2.5 sm:space-y-2 sm:p-6 sm:pt-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+            <div className="space-y-1.5 px-3 py-3 pb-24 sm:space-y-2 sm:p-6 sm:pt-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
               {getTemplatesByCategory(selectedCategory).map((template) => (
                 <button
                   key={template._id}
                   onClick={() => handleActionSelect(template)}
                   disabled={submitting}
-                  className="w-full flex items-center justify-between py-2 px-3 sm:p-4 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-transparent rounded-lg transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-between py-2.5 px-3 sm:p-4 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-transparent rounded-lg transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="text-[13px] leading-tight sm:text-base font-medium text-slate-900 flex-1 pr-2">
+                  <span className="text-sm leading-snug sm:text-base font-medium text-slate-900 flex-1 pr-2">
                     {template.title}
                   </span>
-                  <span className="text-[13px] sm:text-base font-semibold text-emerald-600 flex items-center gap-2 flex-shrink-0">
+                  <span className="text-sm sm:text-base font-semibold text-emerald-600 flex items-center gap-2 flex-shrink-0">
                     {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                     +{template.points} pts
                   </span>
