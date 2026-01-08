@@ -59,7 +59,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   // Conectar ao Socket.IO
   useEffect(() => {
-    const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+    const SOCKET_URL =
+      import.meta.env.VITE_API_BASE?.replace("/api", "") ||
+      "http://localhost:5001";
 
     const newSocket = io(SOCKET_URL, {
       transports: ["websocket", "polling"],
