@@ -268,7 +268,7 @@ export default function Actions() {
       {showPopup && selectedCategory && (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center sm:justify-center z-50 animate-in fade-in">
           <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl max-h-[90vh] sm:max-h-[600px] flex flex-col animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 shadow-2xl">
-            <div className="flex items-center justify-between px-4 py-3 sm:p-6 sm:pb-4 border-b border-slate-200 flex-shrink-0">
+            <div className="flex items-center justify-between px-4 py-2.5 sm:p-6 sm:pb-4 border-b border-slate-200 flex-shrink-0">
               <h3 className="text-base sm:text-xl font-semibold text-slate-900">
                 {
                   categoriesWithCounts.find((c) => c.id === selectedCategory)
@@ -287,18 +287,18 @@ export default function Actions() {
               </button>
             </div>
 
-            <div className="space-y-1.5 p-4 pt-3 sm:space-y-2 sm:p-6 sm:pt-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+            <div className="space-y-1 px-3 py-2.5 sm:space-y-2 sm:p-6 sm:pt-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
               {getTemplatesByCategory(selectedCategory).map((template) => (
                 <button
                   key={template._id}
                   onClick={() => handleActionSelect(template)}
                   disabled={submitting}
-                  className="w-full flex items-center justify-between p-2.5 sm:p-4 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-transparent rounded-lg transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-between py-2 px-3 sm:p-4 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-transparent rounded-lg transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="text-sm sm:text-base font-medium text-slate-900 flex-1 pr-2">
+                  <span className="text-[13px] leading-tight sm:text-base font-medium text-slate-900 flex-1 pr-2">
                     {template.title}
                   </span>
-                  <span className="text-sm sm:text-base font-semibold text-emerald-600 flex items-center gap-2 flex-shrink-0">
+                  <span className="text-[13px] sm:text-base font-semibold text-emerald-600 flex items-center gap-2 flex-shrink-0">
                     {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                     +{template.points} pts
                   </span>
