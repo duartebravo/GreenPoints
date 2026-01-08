@@ -69,3 +69,13 @@ export const rankingApi = {
         return response;
     },
 };
+
+// ==================== BADGES API ====================
+export const badgesApi = {
+    // Get user badges (earned and available with progress)
+    getMyBadges: async () => {
+        const response = await api("/badges/me");
+        return response;
+    },
+};
+

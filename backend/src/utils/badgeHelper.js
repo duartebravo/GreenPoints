@@ -51,7 +51,8 @@ export function getBadgeDetails(badgeId) {
         id: badge.id,
         name: badge.name,
         emoji: badge.emoji,
-        description: badge.description
+        description: badge.description,
+        points: badge.points
     };
 }
 
@@ -64,6 +65,109 @@ export function getAllBadges() {
         id: badge.id,
         name: badge.name,
         emoji: badge.emoji,
-        description: badge.description
+        description: badge.description,
+        points: badge.points
     }));
+}
+
+/**
+ * Obter progresso do utilizador em todos os badges
+ * @param {Object} user - Documento do utilizador
+ * @returns {Object} - { earned: [...], available: [...] }
+ */
+export function getUserBadgeProgress(user) {
+    const currentBadges = user.badges || [];
+    const earned = [];
+    const available = [];
+
+    for (const badgeDef of BADGE_DEFINITIONS) {
+        const badgeInfo = {
+            id: badgeDef.id,
+            name: badgeDef.name,
+            emoji: badgeDef.emoji,
+            description: badgeDef.description,
+            points: badgeDef.points
+        };
+
+        // Se já conquistou este badge
+        if (currentBadges.includes(badgeDef.id)) {
+            earned.push({
+                ...badgeInfo,
+                earnedDate: "Há 3 dias" // Data genérica
+            });
+        } else {
+            // Calcular progresso para badges não conquistados
+            const progress = calculateBadgeProgress(user, badgeDef);
+            available.push({
+                ...badgeInfo,
+                progress: progress.current,
+                target: progress.target
+            });
+        }
+    }
+
+    return { earned, available };
+}
+
+/**
+ * Calcular progresso específico de um badge
+ * @param {Object} user - Documento do utilizador
+ * @param {Object} badgeDef - Definição do badge
+ * @returns {Object} - { current: number, target: number }
+ */
+function calculateBadgeProgress(user, badgeDef) {
+    const id = badgeDef.id;
+
+    // Badges baseados em pontos totais
+    if (id === "iniciante_verde") return { current: user.points, target: 50 };
+    if (id === "eco_warrior") return { current: user.points, target: 200 };
+    if (id === "guardiao_natureza") return { current: user.points, target: 500 };
+    if (id === "campeao_sustentavel") return { current: user.points, target: 1000 };
+
+    // Badges baseados em categorias específicas
+    if (id === "mestre_reciclagem") return { current: user.actionsCount.reciclagem || 0, target: 10 };
+    if (id === "poupador_energia") return { current: user.actionsCount.energia || 0, target: 10 };
+    if (id === "guardiao_agua") return { current: user.actionsCount.agua || 0, target: 10 };
+    if (id === "mobilidade_verde") return { current: user.actionsCount.transporte || 0, target: 10 };
+    if (id === "ativista_local") return { current: user.actionsCount.comunidade || 0, target: 5 };
+
+    // Badges baseados em total de ações
+    // Filtrar apenas valores numéricos para evitar incluir _id
+    const actionsCount = user.actionsCount || {};
+    const totalActions = Object.entries(actionsCount)
+        .filter(([key, value]) => key !== '_id' && typeof value === 'number')
+        .reduce((sum, [, count]) => sum + count, 0);
+
+    if (id === "consistente") return { current: totalActions, target: 10 };
+    if (id === "dedicado") return { current: totalActions, target: 50 };
+    if (id === "incansavel") return { current: totalActions, target: 100 };
+
+    return { current: 0, target: 1 };
+}
+
+/**
+ * Obter os badges mais recentemente conquistados
+ * @param {Object} user - Documento do utilizador
+ * @param {number} limit - Número máximo de badges a retornar
+ * @returns {Array} - Últimos badges conquistados
+ */
+export function getRecentlyEarnedBadges(user, limit = 3) {
+    const currentBadges = user.badges || [];
+
+    // Como não temos data de conquista, retornar os últimos badges da lista
+    // (os mais recentes são os últimos adicionados)
+    const recentBadgeIds = currentBadges.slice(-limit).reverse();
+
+    return recentBadgeIds.map(badgeId => {
+        const badgeDef = BADGE_DEFINITIONS.find(b => b.id === badgeId);
+        if (!badgeDef) return null;
+
+        return {
+            id: badgeDef.id,
+            name: badgeDef.name,
+            emoji: badgeDef.emoji,
+            description: badgeDef.description,
+            points: badgeDef.points
+        };
+    }).filter(badge => badge !== null);
 }
