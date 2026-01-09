@@ -232,6 +232,11 @@ Todo o código gerado foi **revisto, compreendido, testado e adaptado manualment
 A IA revelou-se uma ferramenta útil para **acelerar o desenvolvimento** e apoiar a aprendizagem, mas **não substituiu o processo de análise, decisão e implementação** por parte do autor. A compreensão do código e a sua adaptação ao contexto específico do projeto foram essenciais para garantir a qualidade da solução final.
 
 ---
+## DEPLOY VERCEL.COM
+https://green-points-nu.vercel.app/
+
+
+---
 
 ## 👨‍🎓 Membros do Grupo
 
